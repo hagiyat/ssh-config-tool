@@ -1,0 +1,19 @@
+{
+	"config": {
+		"output_file": "config",
+		"jsons_path": "hosts"
+	},
+	"base": {
+		"Host":		"sample",
+		"HostName":	"127.0.0.1",
+		"User":		"hagiyat",
+		"Port":		"22",
+		"UserKnownHostsFile": "/dev/null",
+		"StrictHostKeyChecking": "no",
+		"PasswordAuthentication": "no",
+		"IdentityFile":  "~/.ssh/id_rsa",
+		"IdentitiesOnly": "yes",
+		"LogLevel": "FATAL",
+		"ConnectTimeout": "5"
+	}
+}
