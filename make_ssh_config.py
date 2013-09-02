@@ -1,7 +1,6 @@
 # coding: utf-8
 
-import os
-import json
+import os, json
 
 class SSH_config_generator:
 
@@ -11,9 +10,6 @@ class SSH_config_generator:
 		self.__app_config = config_json.get('config')
 		self.__base_config = config_json.get('base')
 
-	# jsonファイルリストを生成
-	def __get_jsons(self, path):
-		return os.listdir(path)
 
 	# jsonファイルからデータを取得
 	def __get_json_from_file(self, file_name):
@@ -22,35 +18,30 @@ class SSH_config_generator:
 		f.close
 		return data
 
+	# 各ファイルを読んで出力データを生成
+	def __get_config(self):
+		files = os.listdir(self.__app_config.get('jsons_path'))
+		for file in files:
+			yield self.__get_config_from_file(file)
+
+	# ファイルから書き込む情報を取得
+	def __get_config_from_file(self, file):
+		file = self.__app_config.get('jsons_path') + '/' + file
+		in_json_config = self.__get_json_from_file(file)
+		return self.__merge_to_base(in_json_config)
+
 	# ベースファイルとマージした結果を返す
 	def __merge_to_base(self, in_json_config):
-		result = []
+		#result = []
 		for config in in_json_config:
-			tmp = self.__base_config.copy()
-			for key, value in config.iteritems():
-				tmp[key] = value
-			result.append(tmp)
-		return result
-
-	# 各ファイルを読んで出力データを生成
-	def __make_config(self):
-		config_list = []
-		files = self.__get_jsons(self.__app_config.get('jsons_path'))
-		for file in files:
-			try:
-				file = self.__app_config.get('jsons_path') + '/' + file
-				in_json_config = self.__get_json_from_file(file)
-				config_list += self.__merge_to_base(in_json_config)
-			except Exception as e:
-				print "error: file=%s info=%s" % (file, e.message)
-
-		return config_list
+			merged_config = self.__base_config.copy()
+			merged_config.update(config)
+			yield merged_config
 
 	# ファイル出力
-	def __output_config_file(self, config_list):
-		output = open(self.__app_config.get('output_file'), 'w')
-		for config in config_list:
-			# hostとhostnameだけ先頭に持ってくる
+	def __output_config_file(self, output, merged_config_generator):
+		# hostとhostnameだけ先頭に持ってくる
+		for config in merged_config_generator:
 			host = config.pop("Host")
 			host_name = config.pop("HostName")
 			output.write("Host %s\n" % host)
@@ -58,14 +49,16 @@ class SSH_config_generator:
 			for key, value in config.iteritems():
 				output.write("  %s %s\n" % (key, value))
 
-		output.close()
-
 	# 生成処理実行
 	def generate(self):
 		try:
-			config_list = self.__make_config()
-			self.__output_config_file(config_list)
+			output = open(self.__app_config.get('output_file'), 'w')
+			config_generator = self.__get_config()
+			for merged_config_generator in config_generator:
+				self.__output_config_file(output, merged_config_generator)
+			output.close()
 			print "設定ファイルの生成に成功しました"
+
 		except Exception as e:
 			print e
 			print "設定ファイルの生成に失敗しました"
